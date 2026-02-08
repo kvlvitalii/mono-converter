@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор валют</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-dim: #388bfd33;
+      --eur: #3b82f6;
+      --uah: #facc15;
+      --ron: #f87171;
+      --usd: #22c55e;
+      --pln: #a78bfa;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-dim), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(0, 87, 183, 0.08), transparent);
+    }
+
+    .container {
+      max-width: 420px;
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--muted);
+    }
+
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .currency-badge {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--eur);
+    }
+
+    input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      padding: 1rem 0;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: var(--muted);
+      opacity: 0.6;
+    }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    .results {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .result-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: 1rem 1.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: 100%;
+    }
+
+    .result-label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .result-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 1.15rem;
+    }
+
+    .result-row.uah .result-value { color: var(--uah); }
+    .result-row.usd .result-value { color: var(--usd); }
+    .result-row.ron .result-value { color: var(--ron); }
+    .result-row.pln .result-value { color: var(--pln); }
+
+    .error {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid var(--ron);
+      border-radius: 8px;
+      color: var(--ron);
+      font-size: 0.9rem;
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 1rem 1.5rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--bg);
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .rates-table-section {
+      margin-top: 1.75rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .rates-table-section h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .rates-table {
+      width: 100%;
+      max-width: 320px;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .rates-table th,
+    .rates-table td {
+      padding: 0.5rem 0.75rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rates-table th {
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .rates-table td {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .rates-table .pair-cell { font-weight: 600; }
+    .rates-table .pair-cell .cc-eur { color: var(--eur); }
+    .rates-table .pair-cell .cc-uah { color: var(--uah); }
+    .rates-table .pair-cell .cc-ron { color: var(--ron); }
+    .rates-table .pair-cell .cc-usd { color: var(--usd); }
+    .rates-table .pair-cell .cc-pln { color: var(--pln); }
+    .rates-table .rate-num { color: var(--text); }
+    .rates-table .muted { color: var(--muted); font-family: 'Outfit', sans-serif; }
+
+    .converter-section {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      background: var(--bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .converter-section h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .conv-block {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .conv-block:last-of-type { margin-bottom: 0; }
+
+    .conv-input,
+    .conv-result-display {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      padding: 0.75rem 1rem;
+      outline: none;
+      min-width: 0;
+    }
+
+    .conv-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-dim);
+    }
+
+    .conv-result-display {
+      background: var(--bg);
+      cursor: default;
+    }
+
+    .conv-select-wrap {
+      flex-shrink: 0;
+    }
+
+    .conv-select-wrap select {
+      min-width: 95px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      padding: 0.6rem 0.85rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .conv-select-wrap select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-dim);
+    }
+
+    .conv-select-wrap select option {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .conv-select-wrap select.from-eur,
+    .conv-select-wrap select.to-eur { color: var(--eur); }
+    .conv-select-wrap select.from-usd,
+    .conv-select-wrap select.to-usd { color: var(--usd); }
+    .conv-select-wrap select.from-ron,
+    .conv-select-wrap select.to-ron { color: var(--ron); }
+    .conv-select-wrap select.from-pln,
+    .conv-select-wrap select.to-pln { color: var(--pln); }
+    .conv-select-wrap select.from-uah,
+    .conv-select-wrap select.to-uah { color: var(--uah); }
+
+    .conv-result-display.muted { color: var(--muted); font-weight: 400; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Калькулятор</h1>
+    <p class="subtitle">Курси Monobank (Україна) у реальному часі</p>
+
+    <div class="input-group">
+      <label for="eur">Сума в євро</label>
+      <div class="input-wrap">
+        <span class="currency-badge">€</span>
+        <input type="number" id="eur" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+    </div>
+
+    <button id="calcBtn">Розрахувати</button>
+
+    <div class="results" id="results" style="display: none;">
+      <div class="result-row uah">
+        <span class="result-label">Гривні (UAH)</span>
+        <span class="result-value" id="uahResult">—</span>
+      </div>
+      <div class="result-row usd">
+        <span class="result-label">Долари (USD)</span>
+        <span class="result-value" id="usdResult">—</span>
+      </div>
+      <div class="result-row ron">
+        <span class="result-label">Румунські леї (RON)</span>
+        <span class="result-value" id="ronResult">—</span>
+      </div>
+      <div class="result-row pln">
+        <span class="result-label">Злоті (PLN)</span>
+        <span class="result-value" id="plnResult">—</span>
+      </div>
+    </div>
+
+    <div class="error" id="error" style="display: none;"></div>
+
+    <div class="rates-table-section">
+      <h3>Актуальні курси Monobank (UAH)</h3>
+      <table class="rates-table" id="ratesTable">
+        <thead>
+          <tr>
+            <th>Пара</th>
+            <th>Покупка</th>
+            <th>Продаж</th>
+          </tr>
+        </thead>
+        <tbody id="ratesTableBody">
+          <tr><td colspan="3" class="muted">Завантаження курсів…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="converter-section">
+      <h3>Конвертер валют</h3>
+      <div class="conv-block">
+        <input type="number" id="convAmount" class="conv-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+        <div class="conv-select-wrap">
+          <select id="convFrom">
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+            <option value="RON">RON</option>
+            <option value="PLN">PLN</option>
+            <option value="UAH">UAH</option>
+          </select>
+        </div>
+      </div>
+      <div class="conv-block">
+        <div id="convResult" class="conv-result-display muted">—</div>
+        <div class="conv-select-wrap">
+          <select id="convTo">
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+            <option value="RON">RON</option>
+            <option value="PLN">PLN</option>
+            <option value="UAH">UAH</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MONOBANK_API = 'https://api.monobank.ua/bank/currency';
+    const CACHE_TTL_MS = 60000;
+    const EUR_CODE = 978;
+    const UAH_CODE = 980;
+    const RON_CODE = 946;
+    const USD_CODE = 840;
+    const PLN_CODE = 985;
+
+    let ratesCache = { data: null, fetchedAt: 0 };
+
+    const eurInput = document.getElementById('eur');
+    const calcBtn = document.getElementById('calcBtn');
+    const results = document.getElementById('results');
+    const uahResult = document.getElementById('uahResult');
+    const usdResult = document.getElementById('usdResult');
+    const ronResult = document.getElementById('ronResult');
+    const plnResult = document.getElementById('plnResult');
+    const errorEl = document.getElementById('error');
+
+    async function fetchRates() {
+      const now = Date.now();
+      if (ratesCache.data && (now - ratesCache.fetchedAt) < CACHE_TTL_MS) {
+        return ratesCache.data;
+      }
+      const res = await fetch(MONOBANK_API);
+      if (res.status === 429) throw new Error('Занадто багато запитів. Monobank дозволяє 1 запит на хвилину. Зачекайте ~60 сек.');
+      if (!res.ok) throw new Error('Не вдалося отримати курси з Monobank');
+      const data = await res.json();
+      ratesCache = { data, fetchedAt: now };
+      return data;
+    }
+
+    function findRate(rates, codeA, codeB) {
+      return rates.find(r => r.currencyCodeA === codeA && r.currencyCodeB === codeB);
+    }
+
+    function updateRatesTable(rates) {
+      const tbody = document.getElementById('ratesTableBody');
+      const pairs = [
+        { label: 'EUR / UAH', codeA: EUR_CODE },
+        { label: 'USD / UAH', codeA: USD_CODE },
+        { label: 'RON / UAH', codeA: RON_CODE },
+        { label: 'PLN / UAH', codeA: PLN_CODE }
+      ];
+
+      const pairLabels = [
+        { left: 'EUR', right: 'UAH', leftClass: 'cc-eur', rightClass: 'cc-uah' },
+        { left: 'USD', right: 'UAH', leftClass: 'cc-usd', rightClass: 'cc-uah' },
+        { left: 'RON', right: 'UAH', leftClass: 'cc-ron', rightClass: 'cc-uah' },
+        { left: 'PLN', right: 'UAH', leftClass: 'cc-pln', rightClass: 'cc-uah' }
+      ];
+      tbody.innerHTML = pairs.map(({ codeA }, i) => {
+        const r = findRate(rates, codeA, UAH_CODE);
+        const pl = pairLabels[i];
+        if (!r) return `<tr><td class="pair-cell"><span class="${pl.leftClass}">${pl.left}</span> / <span class="${pl.rightClass}">${pl.right}</span></td><td colspan="2" class="muted">—</td></tr>`;
+
+        const buy = r.rateBuy != null ? r.rateBuy.toFixed(4) : (r.rateCross != null ? r.rateCross.toFixed(4) : '—');
+        const sell = r.rateSell != null ? r.rateSell.toFixed(4) : (r.rateCross != null ? r.rateCross.toFixed(4) : '—');
+
+        return `
+          <tr>
+            <td class="pair-cell"><span class="${pl.leftClass}">${pl.left}</span> / <span class="${pl.rightClass}">${pl.right}</span></td>
+            <td class="rate-num">${buy}</td>
+            <td class="rate-num">${sell}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function formatMoney(num, currency) {
+      return new Intl.NumberFormat('uk-UA', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(num) + ' ' + currency;
+    }
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+      results.style.display = 'none';
+    }
+
+    function hideError() {
+      errorEl.style.display = 'none';
+    }
+
+    function runConverter() {
+      const amountEl = document.getElementById('convAmount');
+      const fromEl = document.getElementById('convFrom');
+      const toEl = document.getElementById('convTo');
+      const resultEl = document.getElementById('convResult');
+      const rates = ratesCache.data;
+      const fromCurr = fromEl.value;
+      const toCurr = toEl.value;
+
+      function getRateToUah(code) {
+        if (code === UAH_CODE) return 1;
+        const r = findRate(rates, code, UAH_CODE);
+        if (!r) return null;
+        return r.rateSell ?? r.rateBuy ?? r.rateCross;
+      }
+      function getRateFromUah(code) {
+        if (code === UAH_CODE) return 1;
+        const r = findRate(rates, code, UAH_CODE);
+        if (!r) return null;
+        const buy = r.rateBuy ?? r.rateCross;
+        return buy ? 1 / buy : null;
+      }
+
+      const codeMap = { EUR: EUR_CODE, USD: USD_CODE, RON: RON_CODE, PLN: PLN_CODE, UAH: UAH_CODE };
+      const symMap = { EUR: '€', USD: '$', RON: 'lei', PLN: 'zł', UAH: '₴' };
+
+      if (!rates) {
+        resultEl.textContent = 'Завантажте курси…';
+        resultEl.className = 'conv-result-display muted';
+        return;
+      }
+      const amount = parseFloat(amountEl.value);
+      if (isNaN(amount) || amount < 0) {
+        resultEl.textContent = '—';
+        resultEl.className = 'conv-result-display muted';
+        return;
+      }
+      const from = codeMap[fromCurr];
+      const to = codeMap[toCurr];
+      const fromSym = symMap[fromCurr];
+      const toSym = symMap[toCurr];
+      if (from === to) {
+        resultEl.textContent = `${amount.toFixed(2)} ${fromSym}`;
+        resultEl.className = 'conv-result-display';
+        return;
+      }
+      const toUah = getRateToUah(from);
+      const fromUah = getRateFromUah(to);
+      if (!toUah || !fromUah) {
+        resultEl.textContent = 'Курс не знайдено';
+        resultEl.className = 'conv-result-display muted';
+        return;
+      }
+      const uah = amount * toUah;
+      const result = uah * fromUah;
+      const resultStr = new Intl.NumberFormat('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result);
+      resultEl.textContent = `${resultStr} ${toSym}`;
+      resultEl.className = 'conv-result-display';
+    }
+
+    function updateSelectColors() {
+      const fromEl = document.getElementById('convFrom');
+      const toEl = document.getElementById('convTo');
+      fromEl.className = 'from-' + fromEl.value.toLowerCase();
+      toEl.className = 'to-' + toEl.value.toLowerCase();
+    }
+
+    function initConverter() {
+      const amountEl = document.getElementById('convAmount');
+      const fromEl = document.getElementById('convFrom');
+      const toEl = document.getElementById('convTo');
+      ['input', 'change'].forEach(ev => amountEl.addEventListener(ev, runConverter));
+      fromEl.addEventListener('change', () => { updateSelectColors(); runConverter(); });
+      toEl.addEventListener('change', () => { updateSelectColors(); runConverter(); });
+      updateSelectColors();
+      runConverter();
+    }
+
+    async function calculate() {
+      const eur = parseFloat(eurInput.value);
+      if (isNaN(eur) || eur <= 0) {
+        showError('Введіть коректну суму в євро');
+        return;
+      }
+
+      hideError();
+      calcBtn.disabled = true;
+      calcBtn.textContent = 'Завантаження…';
+      document.querySelector('.container').classList.add('loading');
+
+      try {
+        const rates = await fetchRates();
+
+        const eurUah = findRate(rates, EUR_CODE, UAH_CODE);
+        const usdUah = findRate(rates, USD_CODE, UAH_CODE);
+        const ronUah = findRate(rates, RON_CODE, UAH_CODE);
+        const plnUah = findRate(rates, PLN_CODE, UAH_CODE);
+
+        if (!eurUah || !usdUah || !ronUah || !plnUah) {
+          throw new Error('Monobank не повернув потрібні курси');
+        }
+
+        const eurToUahRate = eurUah.rateSell ?? eurUah.rateBuy;
+        const usdToUahRate = usdUah.rateSell ?? usdUah.rateBuy;
+        const ronToUahRate = ronUah.rateCross ?? (ronUah.rateSell ?? ronUah.rateBuy);
+        const plnToUahRate = plnUah.rateCross ?? (plnUah.rateSell ?? plnUah.rateBuy);
+
+        const uah = eur * eurToUahRate;
+        const usd = uah / usdToUahRate;
+        const ron = uah / ronToUahRate;
+        const pln = uah / plnToUahRate;
+
+        uahResult.textContent = formatMoney(uah, '₴');
+        usdResult.textContent = formatMoney(usd, '$');
+        ronResult.textContent = formatMoney(ron, 'lei');
+        plnResult.textContent = formatMoney(pln, 'zł');
+        updateRatesTable(rates);
+        runConverter();
+        results.style.display = 'block';
+      } catch (e) {
+        showError(e.message || 'Помилка під час отримання курсів. Спробуйте пізніше.');
+      } finally {
+        calcBtn.disabled = false;
+        calcBtn.textContent = 'Розрахувати';
+        document.querySelector('.container').classList.remove('loading');
+      }
+    }
+
+    calcBtn.addEventListener('click', calculate);
+    eurInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') calculate();
+    });
+
+    initConverter();
+
+    fetchRates().then(rates => {
+      updateRatesTable(rates);
+      runConverter();
+    }).catch(() => {
+      document.getElementById('ratesTableBody').innerHTML =
+        '<tr><td colspan="3" class="muted">Не вдалося завантажити курси. Натисніть «Розрахувати».</td></tr>';
+    });
+  </script>
+</body>
+</html>
