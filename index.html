@@ -21,6 +21,7 @@
       --ron: #f87171;
       --usd: #22c55e;
       --pln: #a78bfa;
+      --chf: #06b6d4;
     }
 
     * {
@@ -163,6 +164,7 @@
     .result-row.usd .result-value { color: var(--usd); }
     .result-row.ron .result-value { color: var(--ron); }
     .result-row.pln .result-value { color: var(--pln); }
+    .result-row.chf .result-value { color: var(--chf); }
 
     .error {
       margin-top: 1rem;
@@ -251,6 +253,7 @@
     .rates-table .pair-cell .cc-ron { color: var(--ron); }
     .rates-table .pair-cell .cc-usd { color: var(--usd); }
     .rates-table .pair-cell .cc-pln { color: var(--pln); }
+    .rates-table .pair-cell .cc-chf { color: var(--chf); }
     .rates-table .rate-num { color: var(--text); }
     .rates-table .muted { color: var(--muted); font-family: 'Outfit', sans-serif; }
 
@@ -341,6 +344,8 @@
     .conv-select-wrap select.to-pln { color: var(--pln); }
     .conv-select-wrap select.from-uah,
     .conv-select-wrap select.to-uah { color: var(--uah); }
+    .conv-select-wrap select.from-chf,
+    .conv-select-wrap select.to-chf { color: var(--chf); }
 
     .conv-result-display.muted { color: var(--muted); font-weight: 400; }
   </style>
@@ -377,6 +382,10 @@
         <span class="result-label">Злоті (PLN)</span>
         <span class="result-value" id="plnResult">—</span>
       </div>
+      <div class="result-row chf">
+        <span class="result-label">Франки (CHF)</span>
+        <span class="result-value" id="chfResult">—</span>
+      </div>
     </div>
 
     <div class="error" id="error" style="display: none;"></div>
@@ -407,6 +416,7 @@
             <option value="USD">USD</option>
             <option value="RON">RON</option>
             <option value="PLN">PLN</option>
+            <option value="CHF">CHF</option>
             <option value="UAH">UAH</option>
           </select>
         </div>
@@ -419,6 +429,7 @@
             <option value="USD">USD</option>
             <option value="RON">RON</option>
             <option value="PLN">PLN</option>
+            <option value="CHF">CHF</option>
             <option value="UAH">UAH</option>
           </select>
         </div>
@@ -434,8 +445,10 @@
     const RON_CODE = 946;
     const USD_CODE = 840;
     const PLN_CODE = 985;
+    const CHF_CODE = 756;
 
     let ratesCache = { data: null, fetchedAt: 0 };
+    let fetchPromise = null;
 
     const eurInput = document.getElementById('eur');
     const calcBtn = document.getElementById('calcBtn');
@@ -444,6 +457,7 @@
     const usdResult = document.getElementById('usdResult');
     const ronResult = document.getElementById('ronResult');
     const plnResult = document.getElementById('plnResult');
+    const chfResult = document.getElementById('chfResult');
     const errorEl = document.getElementById('error');
 
     async function fetchRates() {
@@ -451,12 +465,22 @@
       if (ratesCache.data && (now - ratesCache.fetchedAt) < CACHE_TTL_MS) {
         return ratesCache.data;
       }
-      const res = await fetch(MONOBANK_API);
-      if (res.status === 429) throw new Error('Занадто багато запитів. Monobank дозволяє 1 запит на хвилину. Зачекайте ~60 сек.');
-      if (!res.ok) throw new Error('Не вдалося отримати курси з Monobank');
-      const data = await res.json();
-      ratesCache = { data, fetchedAt: now };
-      return data;
+      if (fetchPromise) {
+        return fetchPromise;
+      }
+      fetchPromise = (async () => {
+        try {
+          const res = await fetch(MONOBANK_API);
+          if (res.status === 429) throw new Error('Занадто багато запитів. Monobank дозволяє 1 запит на хвилину. Зачекайте ~60 сек.');
+          if (!res.ok) throw new Error('Не вдалося отримати курси з Monobank');
+          const data = await res.json();
+          ratesCache = { data, fetchedAt: Date.now() };
+          return data;
+        } finally {
+          fetchPromise = null;
+        }
+      })();
+      return fetchPromise;
     }
 
     function findRate(rates, codeA, codeB) {
@@ -469,14 +493,16 @@
         { label: 'EUR / UAH', codeA: EUR_CODE },
         { label: 'USD / UAH', codeA: USD_CODE },
         { label: 'RON / UAH', codeA: RON_CODE },
-        { label: 'PLN / UAH', codeA: PLN_CODE }
+        { label: 'PLN / UAH', codeA: PLN_CODE },
+        { label: 'CHF / UAH', codeA: CHF_CODE }
       ];
 
       const pairLabels = [
         { left: 'EUR', right: 'UAH', leftClass: 'cc-eur', rightClass: 'cc-uah' },
         { left: 'USD', right: 'UAH', leftClass: 'cc-usd', rightClass: 'cc-uah' },
         { left: 'RON', right: 'UAH', leftClass: 'cc-ron', rightClass: 'cc-uah' },
-        { left: 'PLN', right: 'UAH', leftClass: 'cc-pln', rightClass: 'cc-uah' }
+        { left: 'PLN', right: 'UAH', leftClass: 'cc-pln', rightClass: 'cc-uah' },
+        { left: 'CHF', right: 'UAH', leftClass: 'cc-chf', rightClass: 'cc-uah' }
       ];
       tbody.innerHTML = pairs.map(({ codeA }, i) => {
         const r = findRate(rates, codeA, UAH_CODE);
@@ -536,8 +562,8 @@
         return buy ? 1 / buy : null;
       }
 
-      const codeMap = { EUR: EUR_CODE, USD: USD_CODE, RON: RON_CODE, PLN: PLN_CODE, UAH: UAH_CODE };
-      const symMap = { EUR: '€', USD: '$', RON: 'lei', PLN: 'zł', UAH: '₴' };
+      const codeMap = { EUR: EUR_CODE, USD: USD_CODE, RON: RON_CODE, PLN: PLN_CODE, CHF: CHF_CODE, UAH: UAH_CODE };
+      const symMap = { EUR: '€', USD: '$', RON: 'lei', PLN: 'zł', CHF: 'Fr.', UAH: '₴' };
 
       if (!rates) {
         resultEl.textContent = 'Завантажте курси…';
@@ -610,8 +636,9 @@
         const usdUah = findRate(rates, USD_CODE, UAH_CODE);
         const ronUah = findRate(rates, RON_CODE, UAH_CODE);
         const plnUah = findRate(rates, PLN_CODE, UAH_CODE);
+        const chfUah = findRate(rates, CHF_CODE, UAH_CODE);
 
-        if (!eurUah || !usdUah || !ronUah || !plnUah) {
+        if (!eurUah || !usdUah || !ronUah || !plnUah || !chfUah) {
           throw new Error('Monobank не повернув потрібні курси');
         }
 
@@ -619,16 +646,19 @@
         const usdToUahRate = usdUah.rateSell ?? usdUah.rateBuy;
         const ronToUahRate = ronUah.rateCross ?? (ronUah.rateSell ?? ronUah.rateBuy);
         const plnToUahRate = plnUah.rateCross ?? (plnUah.rateSell ?? plnUah.rateBuy);
+        const chfToUahRate = chfUah.rateCross ?? (chfUah.rateSell ?? chfUah.rateBuy);
 
         const uah = eur * eurToUahRate;
         const usd = uah / usdToUahRate;
         const ron = uah / ronToUahRate;
         const pln = uah / plnToUahRate;
+        const chf = uah / chfToUahRate;
 
         uahResult.textContent = formatMoney(uah, '₴');
         usdResult.textContent = formatMoney(usd, '$');
         ronResult.textContent = formatMoney(ron, 'lei');
         plnResult.textContent = formatMoney(pln, 'zł');
+        chfResult.textContent = formatMoney(chf, 'Fr.');
         updateRatesTable(rates);
         runConverter();
         results.style.display = 'block';

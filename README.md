@@ -1,15 +1,15 @@
 # Mono Calculator
 
-A lightweight currency calculator that uses [Monobank](https://monobank.ua) (Ukraine) exchange rates. Convert between EUR, USD, UAH, RON, and PLN in real time.
+A lightweight currency calculator that uses [Monobank](https://monobank.ua) (Ukraine) exchange rates. Convert between EUR, USD, UAH, RON, PLN, and CHF in real time.
 
 **Live demo:** [https://kvlvitalii.github.io/mono-converter](https://kvlvitalii.github.io/mono-converter)
 
 ## Features
 
-- **Calculator** — Enter amount in EUR and get instant conversion to UAH, USD, RON, and PLN
+- **Calculator** — Enter amount in EUR and get instant conversion to UAH, USD, RON, PLN, and CHF
 - **Live rates** — Fetches buy/sell rates from Monobank API on page load
 - **Currency converter** — Convert between any supported currencies
-- **Rates table** — View current EUR, USD, RON, and PLN rates against UAH
+- **Rates table** — View current EUR, USD, RON, PLN, and CHF rates against UAH
 - **Rate limit handling** — 60-second cache to avoid Monobank's request limit (1 req/min)
 
 ## Supported Currencies
@@ -21,32 +21,20 @@ A lightweight currency calculator that uses [Monobank](https://monobank.ua) (Ukr
 | Ukrainian Hryvnia | UAH |
 | Romanian Leu | RON |
 | Polish Zloty | PLN |
+| Swiss Franc | CHF |
 
 ## Usage
-
-### Web (HTML)
 
 1. [Open live demo](https://kvlvitalii.github.io/mono-converter) in browser
 2. Or open `index.html` locally
 3. Enter amount in EUR and click **Розрахувати** (Calculate)
 4. Use the converter at the bottom for custom conversions
 
-### Python CLI
-
-```bash
-pip install -r requirements.txt
-python calculator.py
-```
-
-Enter amount in EUR and press Enter. Multiple conversions per session use cached rates (60 sec).
-
 ## Project Structure
 
 ```
-monocalculator/
-├── index.html      # Web app (single file, no build step)
-├── calculator.py   # CLI version
-├── requirements.txt
+mono-converter/
+├── index.html   # Web app (single file, no build step)
 └── README.md
 ```
 
